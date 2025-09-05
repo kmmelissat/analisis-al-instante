@@ -1,14 +1,42 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0f172a;
-  --foreground: #f8fafc;
+  /* Dark theme colors inspired by the modern dashboard */
+  --background: #0a0e1a;
+  --background-secondary: #1a1f35;
+  --background-tertiary: #252b47;
+  --foreground: #ffffff;
+  --foreground-muted: #94a3b8;
+  --foreground-subtle: #64748b;
+
+  /* Brand colors with gradients */
   --primary: #3b82f6;
+  --primary-dark: #1e40af;
   --secondary: #8b5cf6;
+  --secondary-dark: #7c3aed;
   --accent: #06b6d4;
+  --accent-purple: #a855f7;
+
+  /* Gradient definitions */
+  --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  --gradient-secondary: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  --gradient-accent: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+  --gradient-dark: linear-gradient(135deg, #1a1f35 0%, #252b47 100%);
+
+  /* Glass morphism effects */
+  --glass-bg: rgba(26, 31, 53, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+  /* Status colors */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #06b6d4;
 }
 
-@theme inline {
+/* Tailwind theme configuration */
+html {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-bricolage-grotesque);
@@ -16,10 +44,26 @@
 
 body {
   background: var(--background);
+  background-image: radial-gradient(
+      circle at 20% 80%,
+      rgba(59, 130, 246, 0.1) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      rgba(139, 92, 246, 0.1) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 40% 40%,
+      rgba(168, 85, 247, 0.05) 0%,
+      transparent 50%
+    );
   color: var(--foreground);
   font-family: var(--font-bricolage-grotesque), system-ui, -apple-system,
     sans-serif;
   font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  min-height: 100vh;
 }
 
 /* Bricolage Grotesque specific styles */
@@ -82,4 +126,98 @@ div {
   transition-duration: 100ms;
   z-index: 2;
   user-select: none;
+}
+
+/* Modern glass morphism card styles */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-card-hover {
+  transition: all 0.3s ease;
+}
+
+.glass-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Gradient text effects */
+.gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-secondary {
+  background: var(--gradient-secondary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Modern button styles */
+.btn-gradient {
+  background: var(--gradient-primary);
+  border: none;
+  color: white;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-gradient:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+
+.btn-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  color: var(--foreground);
+  transition: all 0.3s ease;
+}
+
+.btn-glass:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Animated background elements */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.floating-element {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background-secondary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gradient-primary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gradient-secondary);
 }
