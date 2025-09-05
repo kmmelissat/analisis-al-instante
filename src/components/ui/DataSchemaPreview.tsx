@@ -7,6 +7,43 @@ interface DataSchemaPreviewProps {
 }
 
 export function DataSchemaPreview({ fileMetadata }: DataSchemaPreviewProps) {
+  // Early return if essential data is missing
+  if (
+    !fileMetadata ||
+    !fileMetadata.columns ||
+    fileMetadata.columns.length === 0
+  ) {
+    return (
+      <div className="mt-6 p-6 rounded-2xl border border-yellow-400/30 bg-yellow-500/10 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+            <svg
+              className="w-5 h-5 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h3 className="font-bold text-yellow-400 text-lg">
+              ⚠️ Estructura de Datos No Disponible
+            </h3>
+            <p className="text-yellow-300 text-sm">
+              No se pudo detectar la estructura del archivo
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const getTypeIcon = (type: string) => {
     switch (type.toLowerCase()) {
       case "string":
@@ -113,7 +150,7 @@ export function DataSchemaPreview({ fileMetadata }: DataSchemaPreviewProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {fileMetadata.columns.map((column, index) => {
-          const dataType = fileMetadata.infer_schema[column] || "unknown";
+          const dataType = fileMetadata.infer_schema?.[column] || "unknown";
           return (
             <div
               key={index}
@@ -140,7 +177,7 @@ export function DataSchemaPreview({ fileMetadata }: DataSchemaPreviewProps) {
             <span>
               Texto:{" "}
               {
-                Object.values(fileMetadata.infer_schema).filter(
+                Object.values(fileMetadata.infer_schema || {}).filter(
                   (t) => t === "string"
                 ).length
               }
@@ -151,7 +188,7 @@ export function DataSchemaPreview({ fileMetadata }: DataSchemaPreviewProps) {
             <span>
               Números:{" "}
               {
-                Object.values(fileMetadata.infer_schema).filter(
+                Object.values(fileMetadata.infer_schema || {}).filter(
                   (t) => t.includes("number") || t.includes("integer")
                 ).length
               }
@@ -162,7 +199,7 @@ export function DataSchemaPreview({ fileMetadata }: DataSchemaPreviewProps) {
             <span>
               Fechas:{" "}
               {
-                Object.values(fileMetadata.infer_schema).filter((t) =>
+                Object.values(fileMetadata.infer_schema || {}).filter((t) =>
                   t.includes("date")
                 ).length
               }

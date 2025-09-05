@@ -56,7 +56,7 @@ export interface FileUploadResponse {
 export interface ApiError {
   message: string;
   code?: string;
-  details?: any;
+  details?: unknown;
 }
 
 // File upload function with progress callback

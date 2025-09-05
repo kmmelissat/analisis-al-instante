@@ -124,8 +124,8 @@ export function ResultsScreen() {
           )}
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Nuestra IA ha analizado tus datos y generado estas sugerencias de
-            visualización. Haz clic en "Agregar al Dashboard" para incluirlas en
-            tu reporte.
+            visualización. Haz clic en &quot;Agregar al Dashboard&quot; para
+            incluirlas en tu reporte.
           </p>
         </div>
 

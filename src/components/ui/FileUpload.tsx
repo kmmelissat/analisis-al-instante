@@ -215,7 +215,11 @@ export function FileUpload({
           type="button"
           disabled={isUploading}
           className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
-          onClick={() => document.querySelector('input[type="file"]')?.click()}
+          onClick={() =>
+            (
+              document.querySelector('input[type="file"]') as HTMLInputElement
+            )?.click()
+          }
         >
           Seleccionar archivo
         </button>

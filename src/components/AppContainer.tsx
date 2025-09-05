@@ -129,14 +129,20 @@ const simulateAIAnalysis = async (
 
 // Convert API response to internal format
 const convertToAnalysisCards = (charts: RecommendedChart[]): AnalysisCard[] => {
+  // Add null check to prevent runtime errors
+  if (!charts || !Array.isArray(charts)) {
+    console.warn("Charts data is missing or invalid:", charts);
+    return [];
+  }
+
   return charts.map((chart, index) => ({
     id: `chart-${index + 1}`,
     title: chart.title,
-    summary: chart.summary,
-    chartType: chart.type,
-    xAxis: chart.x_axis,
-    yAxis: chart.y_axis,
-    groupBy: chart.group_by,
+    summary: chart.insight, // Changed from chart.summary to chart.insight
+    chartType: chart.chart_type, // Changed from chart.type to chart.chart_type
+    xAxis: chart.parameters.x_axis,
+    yAxis: chart.parameters.y_axis || "", // Handle null y_axis
+    groupBy: chart.parameters.color_by, // Use color_by as groupBy
     previewData: [], // Will be populated with actual data later
   }));
 };
@@ -192,12 +198,13 @@ export function AppContainer() {
 
       console.log("✅ Analysis completed:", analysisResponse);
 
-      // Store the analysis summary
-      setAnalysisSummary(analysisResponse.summary);
+      // Store the analysis summary (use data overview as summary for now)
+      const summaryText = `Análisis completado: ${analysisResponse.data_overview.total_rows} filas, ${analysisResponse.data_overview.total_columns} columnas. ${analysisResponse.data_overview.numeric_columns.length} columnas numéricas y ${analysisResponse.data_overview.categorical_columns.length} categóricas detectadas.`;
+      setAnalysisSummary(summaryText);
 
       // Convert and store the chart recommendations
       const analysisCards = convertToAnalysisCards(
-        analysisResponse.recommended_charts
+        analysisResponse.suggestions
       );
       setSuggestions(analysisCards);
     } catch (error) {

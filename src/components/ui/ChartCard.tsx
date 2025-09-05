@@ -50,7 +50,7 @@ export function ChartCard({ chart, onRemove, onEdit }: ChartCardProps) {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">{chart.title}</h3>
           <button
-            onClick={() => onRemove?.(chart.id)}
+            onClick={() => onRemove?.()}
             className="text-red-500 hover:text-red-700 transition-colors"
           >
             <svg
@@ -176,7 +176,7 @@ export function ChartCard({ chart, onRemove, onEdit }: ChartCardProps) {
                 outerRadius={80}
                 dataKey="value"
                 label={({ name, percent }) =>
-                  `${name} ${(percent * 100).toFixed(0)}%`
+                  `${name} ${percent ? (percent * 100).toFixed(0) : 0}%`
                 }
               >
                 {chartData.map((entry, index) => (

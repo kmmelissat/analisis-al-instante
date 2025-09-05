@@ -1,4 +1,5 @@
 // Core application types for Análisis al Instante
+import { Layout } from "react-grid-layout";
 
 export type ChartType = "bar" | "line" | "pie" | "scatter" | "area" | "donut";
 
@@ -10,7 +11,7 @@ export interface ChartConfig {
   xAxis: string;
   yAxis: string | string[];
   colors: string[];
-  data: any[];
+  data: Record<string, unknown>[];
   isLoading?: boolean;
   error?: string | null;
   meta?: {
@@ -22,16 +23,31 @@ export interface ChartConfig {
 
 export interface RecommendedChart {
   title: string;
-  summary: string;
-  type: ChartType;
-  x_axis: string;
-  y_axis: string;
-  group_by?: string | null;
+  chart_type: ChartType;
+  parameters: {
+    x_axis: string;
+    y_axis: string | null;
+    color_by?: string | null;
+    size_by?: string | null;
+    aggregation?: string;
+    bins?: number | null;
+    additional_params?: Record<string, unknown>;
+  };
+  insight: string;
+  priority: number;
 }
 
 export interface AnalysisResponse {
-  summary: string;
-  recommended_charts: RecommendedChart[];
+  file_id: string;
+  suggestions: RecommendedChart[];
+  data_overview: {
+    total_rows: number;
+    total_columns: number;
+    numeric_columns: string[];
+    categorical_columns: string[];
+    missing_values_count: number;
+  };
+  analysis_timestamp: string;
 }
 
 export interface ChartDataRequest {
@@ -45,7 +61,7 @@ export interface ChartDataRequest {
 }
 
 export interface ChartDataResponse {
-  data: any[];
+  data: Record<string, unknown>[];
   config: {
     x_axis: string;
     y_axis: string;
@@ -70,7 +86,7 @@ export interface AnalysisCard {
   xAxis: string;
   yAxis: string;
   groupBy?: string | null;
-  previewData: any[];
+  previewData: Record<string, unknown>[];
 }
 
 export interface FileMetadata {
@@ -102,7 +118,7 @@ export interface AnalysisState {
 
 export interface DashboardState {
   selectedCharts: ChartConfig[];
-  layout: any[]; // react-grid-layout Layout[]
+  layout: Layout[];
 }
 
 export interface AppState
@@ -126,7 +142,7 @@ export interface AppState
   addChart: (chart: ChartConfig) => void;
   removeChart: (chartId: string) => void;
   updateChart: (chartId: string, updates: Partial<ChartConfig>) => void;
-  updateLayout: (layout: any[]) => void;
+  updateLayout: (layout: Layout[]) => void;
 
   // Reset functions
   resetUpload: () => void;
@@ -139,7 +155,7 @@ export interface FileUploadProps {
   onFileSelect: (file: File) => void;
   isUploading: boolean;
   uploadProgress?: number;
-  error?: string;
+  error?: string | null;
 }
 
 export interface LoadingStateProps {
@@ -157,8 +173,8 @@ export interface AnalysisCardProps {
 
 export interface DashboardGridProps {
   charts: ChartConfig[];
-  layout: any[];
-  onLayoutChange: (layout: any[]) => void;
+  layout: Layout[];
+  onLayoutChange: (layout: Layout[]) => void;
   onRemoveChart: (id: string) => void;
 }
 

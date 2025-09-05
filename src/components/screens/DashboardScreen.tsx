@@ -1,12 +1,13 @@
 "use client";
 
 import { useAppStore } from "@/lib/store";
+import { Layout } from "react-grid-layout";
 import { DashboardGrid } from "@/components/ui/DashboardGrid";
 
 export function DashboardScreen() {
   const { selectedCharts, layout, updateLayout, removeChart } = useAppStore();
 
-  const handleLayoutChange = (newLayout: any[]) => {
+  const handleLayoutChange = (newLayout: Layout[]) => {
     updateLayout(newLayout);
   };
 
