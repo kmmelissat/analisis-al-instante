@@ -50,8 +50,8 @@ export function LandingScreen({ onStartAnalysis }: LandingScreenProps) {
       console.log("📊 File ready for analysis:", {
         fileId: response.file_id,
         filename: response.filename,
-        size: response.size_bytes,
-        contentType: response.content_type,
+        shape: response.shape,
+        columns: response.columns.length,
       });
     } catch (err) {
       console.error("❌ File upload failed:", err);
@@ -140,24 +140,22 @@ export function LandingScreen({ onStartAnalysis }: LandingScreenProps) {
                         {fileMetadata.filename}
                       </p>
                       <p>
-                        <span className="text-green-200">Tamaño:</span>{" "}
-                        {(fileMetadata.size_bytes / 1024 / 1024).toFixed(2)} MB
+                        <span className="text-green-200">Filas:</span>{" "}
+                        {fileMetadata.shape[0].toLocaleString()}
+                      </p>
+                      <p>
+                        <span className="text-green-200">Columnas:</span>{" "}
+                        {fileMetadata.shape[1]}
                       </p>
                       <p>
                         <span className="text-green-200">ID:</span>{" "}
                         {fileMetadata.file_id}
                       </p>
-                      <p>
-                        <span className="text-green-200">Tipo:</span>{" "}
-                        {fileMetadata.content_type}
-                      </p>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-green-300 opacity-75">
-                      {new Date(fileMetadata.uploaded_at).toLocaleString(
-                        "es-ES"
-                      )}
+                      {fileMetadata.message}
                     </div>
                   </div>
                 </div>

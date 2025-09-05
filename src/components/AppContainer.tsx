@@ -3,7 +3,12 @@
 import { useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { analyzeFile, ApiError } from "@/lib/api";
-import { RecommendedChart, AnalysisCard } from "@/types";
+import { RecommendedChart, AnalysisCard, ChartType } from "@/types";
+import {
+  ChartRecommendationEngine,
+  DataAnalysis,
+} from "@/lib/chartRecommendations";
+import { ChartErrorHandler } from "@/lib/errorHandling";
 import { LandingScreen } from "@/components/screens/LandingScreen";
 import { ProcessingScreen } from "@/components/screens/ProcessingScreen";
 import { ResultsScreen } from "@/components/screens/ResultsScreen";
@@ -404,8 +409,11 @@ const generateAxisLabel = (axis: string, isYAxis: boolean = false): string => {
     .join(" ");
 };
 
-// Convert API response to internal format
-const convertToAnalysisCards = (charts: RecommendedChart[]): AnalysisCard[] => {
+// Convert API response to internal format using enhanced recommendation system
+const convertToAnalysisCards = (
+  charts: RecommendedChart[],
+  fileMetadata?: any
+): AnalysisCard[] => {
   // Add null check to prevent runtime errors
   if (!charts || !Array.isArray(charts)) {
     console.warn("Charts data is missing or invalid:", charts);
@@ -414,10 +422,12 @@ const convertToAnalysisCards = (charts: RecommendedChart[]): AnalysisCard[] => {
 
   return charts.map((chart, index) => ({
     id: `chart-${index + 1}`,
-    title: generateProfessionalTitle(chart),
-    summary: generateEnhancedInsight(chart, index),
+    title: chart.title || generateProfessionalTitle(chart),
+    summary: chart.insight || generateEnhancedInsight(chart, index),
     chartType: chart.chart_type,
-    xAxis: generateAxisLabel(chart.parameters.x_axis),
+    xAxis: chart.parameters.x_axis
+      ? generateAxisLabel(chart.parameters.x_axis)
+      : "",
     yAxis: chart.parameters.y_axis
       ? generateAxisLabel(chart.parameters.y_axis, true)
       : "",
@@ -426,10 +436,135 @@ const convertToAnalysisCards = (charts: RecommendedChart[]): AnalysisCard[] => {
       : null,
     previewData: generatePreviewData(
       chart.chart_type,
-      chart.parameters.x_axis,
-      chart.parameters.y_axis
+      chart.parameters.x_axis || "category",
+      chart.parameters.y_axis || null
     ),
   }));
+};
+
+// Enhanced analysis using the recommendation engine
+const generateEnhancedRecommendations = (
+  fileMetadata: any
+): RecommendedChart[] => {
+  try {
+    // Create data analysis object from file metadata
+    const dataAnalysis: DataAnalysis = {
+      columns: fileMetadata.columns || [],
+      columnTypes: fileMetadata.data_types || {},
+      rowCount: fileMetadata.shape?.[0] || 0,
+      numericColumns: Object.entries(fileMetadata.data_types || {})
+        .filter(([_, type]) =>
+          ["int64", "float64", "number"].includes(type as string)
+        )
+        .map(([col, _]) => col),
+      categoricalColumns: Object.entries(fileMetadata.data_types || {})
+        .filter(([_, type]) =>
+          ["object", "category", "string"].includes(type as string)
+        )
+        .map(([col, _]) => col),
+      datetimeColumns: Object.entries(fileMetadata.data_types || {})
+        .filter(([_, type]) =>
+          ["datetime64", "datetime"].includes(type as string)
+        )
+        .map(([col, _]) => col),
+      uniqueValueCounts: {}, // Would need actual data analysis
+      missingValueCounts: {}, // Would need actual data analysis
+    };
+
+    // Use the recommendation engine
+    const engine = new ChartRecommendationEngine(dataAnalysis);
+    return engine.generateRecommendations(8);
+  } catch (error) {
+    console.error("Error generating enhanced recommendations:", error);
+    // Fallback to basic recommendations
+    return generateBasicRecommendations(fileMetadata);
+  }
+};
+
+// Fallback basic recommendations
+const generateBasicRecommendations = (
+  fileMetadata: any
+): RecommendedChart[] => {
+  const numericColumns = Object.entries(fileMetadata.data_types || {})
+    .filter(([_, type]) =>
+      ["int64", "float64", "number"].includes(type as string)
+    )
+    .map(([col, _]) => col);
+
+  const categoricalColumns = Object.entries(fileMetadata.data_types || {})
+    .filter(([_, type]) =>
+      ["object", "category", "string"].includes(type as string)
+    )
+    .map(([col, _]) => col);
+
+  const recommendations: RecommendedChart[] = [];
+
+  // Basic bar chart
+  if (categoricalColumns.length > 0 && numericColumns.length > 0) {
+    recommendations.push({
+      title: `${numericColumns[0]} by ${categoricalColumns[0]}`,
+      chart_type: "bar",
+      parameters: {
+        x_axis: categoricalColumns[0],
+        y_axis: numericColumns[0],
+        aggregation: "sum",
+      },
+      insight:
+        "Compare values across categories to identify patterns and outliers.",
+      priority: 1,
+      confidence: 85,
+    });
+  }
+
+  // Histogram for numeric data
+  if (numericColumns.length > 0) {
+    recommendations.push({
+      title: `Distribution of ${numericColumns[0]}`,
+      chart_type: "histogram",
+      parameters: {
+        x_axis: numericColumns[0],
+        bins: 20,
+      },
+      insight:
+        "Analyze the distribution pattern to understand data spread and identify outliers.",
+      priority: 2,
+      confidence: 80,
+    });
+  }
+
+  // Scatter plot for numeric relationships
+  if (numericColumns.length >= 2) {
+    recommendations.push({
+      title: `${numericColumns[0]} vs ${numericColumns[1]}`,
+      chart_type: "scatter",
+      parameters: {
+        x_axis: numericColumns[0],
+        y_axis: numericColumns[1],
+      },
+      insight:
+        "Explore the relationship between two numeric variables to identify correlations.",
+      priority: 3,
+      confidence: 75,
+    });
+  }
+
+  // Pie chart for categorical distribution
+  if (categoricalColumns.length > 0) {
+    recommendations.push({
+      title: `Distribution of ${categoricalColumns[0]}`,
+      chart_type: "pie",
+      parameters: {
+        x_axis: categoricalColumns[0],
+        limit: 8,
+      },
+      insight:
+        "Visualize the proportional distribution of categories in your data.",
+      priority: 4,
+      confidence: 70,
+    });
+  }
+
+  return recommendations;
 };
 
 export function AppContainer() {
@@ -450,6 +585,13 @@ export function AppContainer() {
 
   // Determine current screen based on app state
   const getCurrentScreen = () => {
+    console.log("🔍 Determining screen:", {
+      selectedCharts: selectedCharts.length,
+      suggestions: suggestions.length,
+      isAnalyzing,
+      fileMetadata: !!fileMetadata,
+    });
+
     if (selectedCharts.length > 0) return "dashboard";
     if (suggestions.length > 0) return "results";
     if (isAnalyzing) return "processing";
@@ -458,6 +600,7 @@ export function AppContainer() {
 
   // Real AI analysis function
   const performAnalysis = async (fileId: string) => {
+    console.log("🚀 Starting analysis for file:", fileId);
     setAnalyzing(true);
     setAnalysisError(null);
     resetAnalysis();
@@ -487,28 +630,36 @@ export function AppContainer() {
       const summaryText = `Análisis completado: ${analysisResponse.data_overview.total_rows} filas, ${analysisResponse.data_overview.total_columns} columnas. ${analysisResponse.data_overview.numeric_columns.length} columnas numéricas y ${analysisResponse.data_overview.categorical_columns.length} categóricas detectadas.`;
       setAnalysisSummary(summaryText);
 
+      // Try to use enhanced recommendations, fallback to API suggestions
+      let recommendations: RecommendedChart[] = [];
+
+      if (fileMetadata) {
+        // Use enhanced recommendation engine
+        recommendations = generateEnhancedRecommendations(fileMetadata);
+        console.log("✨ Generated enhanced recommendations:", recommendations);
+      }
+
+      // If no enhanced recommendations or they failed, use API suggestions
+      if (recommendations.length === 0 && analysisResponse.suggestions) {
+        recommendations = analysisResponse.suggestions;
+        console.log("📊 Using API recommendations:", recommendations);
+      }
+
       // Convert and store the chart recommendations
       const analysisCards = convertToAnalysisCards(
-        analysisResponse.suggestions
+        recommendations,
+        fileMetadata
       );
       setSuggestions(analysisCards);
     } catch (error) {
       console.error("❌ Analysis failed:", error);
 
-      const apiError = error as ApiError;
-      let errorMessage =
-        "Error durante el análisis. Por favor intenta de nuevo.";
+      // Use enhanced error handling
+      const chartError = ChartErrorHandler.handleError(error);
+      const userFriendlyMessage =
+        ChartErrorHandler.formatErrorForUser(chartError);
 
-      if (apiError.message) {
-        errorMessage = apiError.message;
-      } else if (apiError.code === "NETWORK_ERROR") {
-        errorMessage = "Error de conexión. Verifica tu conexión a internet.";
-      } else if (apiError.code === "FILE_NOT_FOUND") {
-        errorMessage =
-          "Archivo no encontrado. Por favor sube el archivo nuevamente.";
-      }
-
-      setAnalysisError(errorMessage);
+      setAnalysisError(userFriendlyMessage);
     } finally {
       setAnalyzing(false);
     }

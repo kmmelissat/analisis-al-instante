@@ -143,28 +143,57 @@ export function DataSchemaPreview({ fileMetadata }: DataSchemaPreviewProps) {
             📊 Estructura de Datos Detectada
           </h3>
           <p className="text-blue-300 text-sm">
-            {fileMetadata.columns.length} columnas identificadas automáticamente
+            {fileMetadata.columns.length} columnas •{" "}
+            {fileMetadata.shape[0].toLocaleString()} filas de datos
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         {fileMetadata.columns.map((column, index) => {
-          const dataType = fileMetadata.infer_schema?.[column] || "unknown";
+          const dataType = fileMetadata.data_types?.[column] || "unknown";
+          const stats = fileMetadata.summary_stats?.[column];
+          const isNumeric =
+            dataType.includes("float") || dataType.includes("int");
+
           return (
             <div
               key={index}
-              className="flex items-center gap-3 p-3 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-blue-500/50 transition-all duration-200"
+              className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-blue-500/50 transition-all duration-200"
             >
-              {getTypeIcon(dataType)}
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-white truncate text-sm">
-                  {column}
-                </p>
-                <p className={`text-xs ${getTypeColor(dataType)} capitalize`}>
-                  {dataType}
-                </p>
+              <div className="flex items-center gap-3 mb-2">
+                {getTypeIcon(dataType)}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-white truncate text-sm">
+                    {column}
+                  </p>
+                  <p className={`text-xs ${getTypeColor(dataType)} capitalize`}>
+                    {dataType}
+                  </p>
+                </div>
               </div>
+
+              {isNumeric && stats && (
+                <div className="mt-2 pt-2 border-t border-slate-600/50">
+                  <div className="grid grid-cols-2 gap-1 text-xs text-slate-300">
+                    <div>
+                      <span className="text-slate-400">Promedio:</span>
+                      <div className="font-medium text-blue-300">
+                        {stats.mean.toLocaleString(undefined, {
+                          maximumFractionDigits: 1,
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">Rango:</span>
+                      <div className="font-medium text-green-300">
+                        {stats.min.toLocaleString()} -{" "}
+                        {stats.max.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
@@ -177,8 +206,8 @@ export function DataSchemaPreview({ fileMetadata }: DataSchemaPreviewProps) {
             <span>
               Texto:{" "}
               {
-                Object.values(fileMetadata.infer_schema || {}).filter(
-                  (t) => t === "string"
+                Object.values(fileMetadata.data_types || {}).filter(
+                  (t) => t === "object" || t === "string"
                 ).length
               }
             </span>
@@ -188,8 +217,8 @@ export function DataSchemaPreview({ fileMetadata }: DataSchemaPreviewProps) {
             <span>
               Números:{" "}
               {
-                Object.values(fileMetadata.infer_schema || {}).filter(
-                  (t) => t.includes("number") || t.includes("integer")
+                Object.values(fileMetadata.data_types || {}).filter(
+                  (t) => t.includes("float") || t.includes("int")
                 ).length
               }
             </span>
@@ -199,8 +228,8 @@ export function DataSchemaPreview({ fileMetadata }: DataSchemaPreviewProps) {
             <span>
               Fechas:{" "}
               {
-                Object.values(fileMetadata.infer_schema || {}).filter((t) =>
-                  t.includes("date")
+                Object.values(fileMetadata.data_types || {}).filter(
+                  (t) => t.includes("date") || t.includes("datetime")
                 ).length
               }
             </span>
