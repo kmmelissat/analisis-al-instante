@@ -10,7 +10,7 @@ const bricolageGrotesque = Bricolage_Grotesque({
 });
 
 export const metadata: Metadata = {
-  title: "Análisis al Instante - AI Dashboard Creator",
+  title: "MelissaAI - AI Dashboard Creator",
   description:
     "Transform your data into insights in seconds with AI-powered dashboard creation",
 };
