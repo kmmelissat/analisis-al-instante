@@ -9,10 +9,10 @@ export function LoadingState({
   onCancel,
 }: LoadingStateProps) {
   const steps = [
-    "🔍 Analyzing data structure",
-    "📊 Identifying key patterns",
-    "💡 Generating visualization ideas",
-    "✨ Creating insights",
+    "🔍 Analizando estructura de datos",
+    "📊 Identificando patrones clave",
+    "💡 Generando ideas de visualización",
+    "✨ Creando recomendaciones",
   ];
 
   const currentStepIndex = steps.findIndex((step) => step === currentStep);
