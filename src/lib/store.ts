@@ -30,6 +30,16 @@ export const useAppStore = create<AppState>()(
       selectedCharts: [],
       layout: [],
 
+      // Page Navigation State
+      currentPage: "landing" as
+        | "landing"
+        | "processing"
+        | "results"
+        | "dashboard",
+      pageHistory: [] as Array<
+        "landing" | "processing" | "results" | "dashboard"
+      >,
+
       // File Upload Actions
       setFile: (file) => set({ file }),
       setFileMetadata: (fileMetadata) => set({ fileMetadata }),
@@ -93,6 +103,48 @@ export const useAppStore = create<AppState>()(
           selectedCharts: [],
           layout: [],
         }),
+
+      // Page Navigation Actions
+      setCurrentPage: (page) => {
+        const { currentPage, pageHistory } = get();
+        const newHistory = [...pageHistory, currentPage];
+        set({
+          currentPage: page,
+          pageHistory: newHistory.slice(-5), // Keep last 5 pages for history
+        });
+      },
+
+      goToPage: (page) => {
+        const { currentPage, pageHistory } = get();
+        if (currentPage !== page) {
+          const newHistory = [...pageHistory, currentPage];
+          set({
+            currentPage: page,
+            pageHistory: newHistory.slice(-5),
+          });
+        }
+      },
+
+      goBack: () => {
+        const { pageHistory } = get();
+        if (pageHistory.length > 0) {
+          const previousPage = pageHistory[pageHistory.length - 1];
+          const newHistory = pageHistory.slice(0, -1);
+          set({
+            currentPage: previousPage,
+            pageHistory: newHistory,
+          });
+        }
+      },
+
+      // Navigation Actions (legacy - now uses page system)
+      goBackToResults: () => {
+        set({
+          selectedCharts: [],
+          layout: [],
+          currentPage: "results",
+        });
+      },
     }),
     {
       name: "analisis-al-instante-storage",
@@ -102,6 +154,8 @@ export const useAppStore = create<AppState>()(
         summary: state.summary,
         selectedCharts: state.selectedCharts,
         layout: state.layout,
+        currentPage: state.currentPage,
+        pageHistory: state.pageHistory,
       }),
     }
   )

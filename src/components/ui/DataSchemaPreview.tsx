@@ -45,79 +45,115 @@ export function DataSchemaPreview({ fileMetadata }: DataSchemaPreviewProps) {
   }
 
   const getTypeIcon = (type: string) => {
-    switch (type.toLowerCase()) {
-      case "string":
-        return (
-          <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
-            <span className="text-white text-xs font-bold">Aa</span>
-          </div>
-        );
-      case "number":
-      case "float":
-        return (
-          <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center">
-            <span className="text-white text-xs font-bold">#</span>
-          </div>
-        );
-      case "integer":
-      case "int":
-        return (
-          <div className="w-6 h-6 bg-emerald-500 rounded flex items-center justify-center">
-            <span className="text-white text-xs font-bold">1</span>
-          </div>
-        );
-      case "date":
-      case "datetime":
-        return (
-          <div className="w-6 h-6 bg-purple-500 rounded flex items-center justify-center">
-            <svg
-              className="w-3 h-3 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          </div>
-        );
-      case "boolean":
-        return (
-          <div className="w-6 h-6 bg-orange-500 rounded flex items-center justify-center">
-            <span className="text-white text-xs font-bold">?</span>
-          </div>
-        );
-      default:
-        return (
-          <div className="w-6 h-6 bg-gray-500 rounded flex items-center justify-center">
-            <span className="text-white text-xs font-bold">•</span>
-          </div>
-        );
+    const normalizedType = type.toLowerCase();
+
+    // Handle pandas/numpy data types
+    if (normalizedType.includes("object")) {
+      return (
+        <div className="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
+          <span className="text-white text-xs font-bold">Aa</span>
+        </div>
+      );
     }
+
+    if (
+      normalizedType.includes("int64") ||
+      normalizedType.includes("int32") ||
+      normalizedType.includes("int")
+    ) {
+      return (
+        <div className="w-6 h-6 bg-emerald-500 rounded flex items-center justify-center">
+          <span className="text-white text-xs font-bold">1</span>
+        </div>
+      );
+    }
+
+    if (
+      normalizedType.includes("float64") ||
+      normalizedType.includes("float32") ||
+      normalizedType.includes("float")
+    ) {
+      return (
+        <div className="w-6 h-6 bg-green-500 rounded flex items-center justify-center">
+          <span className="text-white text-xs font-bold">#</span>
+        </div>
+      );
+    }
+
+    if (
+      normalizedType.includes("datetime64") ||
+      normalizedType.includes("datetime") ||
+      normalizedType.includes("date")
+    ) {
+      return (
+        <div className="w-6 h-6 bg-purple-500 rounded flex items-center justify-center">
+          <svg
+            className="w-3 h-3 text-white"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        </div>
+      );
+    }
+
+    if (normalizedType.includes("bool")) {
+      return (
+        <div className="w-6 h-6 bg-orange-500 rounded flex items-center justify-center">
+          <span className="text-white text-xs font-bold">?</span>
+        </div>
+      );
+    }
+
+    if (normalizedType.includes("category")) {
+      return (
+        <div className="w-6 h-6 bg-indigo-500 rounded flex items-center justify-center">
+          <span className="text-white text-xs font-bold">C</span>
+        </div>
+      );
+    }
+
+    // Default case
+    return (
+      <div className="w-6 h-6 bg-gray-500 rounded flex items-center justify-center">
+        <span className="text-white text-xs font-bold">•</span>
+      </div>
+    );
   };
 
   const getTypeColor = (type: string) => {
-    switch (type.toLowerCase()) {
-      case "string":
-        return "text-blue-400";
-      case "number":
-      case "float":
-        return "text-green-400";
-      case "integer":
-      case "int":
-        return "text-emerald-400";
-      case "date":
-      case "datetime":
-        return "text-purple-400";
-      case "boolean":
-        return "text-orange-400";
-      default:
-        return "text-gray-400";
-    }
+    const normalizedType = type.toLowerCase();
+
+    if (normalizedType.includes("object")) return "text-blue-400";
+    if (
+      normalizedType.includes("int64") ||
+      normalizedType.includes("int32") ||
+      normalizedType.includes("int")
+    )
+      return "text-emerald-400";
+    if (
+      normalizedType.includes("float64") ||
+      normalizedType.includes("float32") ||
+      normalizedType.includes("float")
+    )
+      return "text-green-400";
+    if (
+      normalizedType.includes("datetime64") ||
+      normalizedType.includes("datetime") ||
+      normalizedType.includes("date")
+    )
+      return "text-purple-400";
+    if (normalizedType.includes("bool")) return "text-orange-400";
+    if (normalizedType.includes("category")) return "text-indigo-400";
+
+    return "text-gray-400";
   };
 
   return (
@@ -192,6 +228,24 @@ export function DataSchemaPreview({ fileMetadata }: DataSchemaPreviewProps) {
                       </div>
                     </div>
                   </div>
+                  <div className="mt-1 grid grid-cols-2 gap-1 text-xs text-slate-300">
+                    <div>
+                      <span className="text-slate-400">Mediana:</span>
+                      <div className="font-medium text-cyan-300">
+                        {stats["50%"].toLocaleString(undefined, {
+                          maximumFractionDigits: 1,
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">Desv. Est:</span>
+                      <div className="font-medium text-yellow-300">
+                        {stats.std.toLocaleString(undefined, {
+                          maximumFractionDigits: 1,
+                        })}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -230,6 +284,17 @@ export function DataSchemaPreview({ fileMetadata }: DataSchemaPreviewProps) {
               {
                 Object.values(fileMetadata.data_types || {}).filter(
                   (t) => t.includes("date") || t.includes("datetime")
+                ).length
+              }
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+            <span>
+              Categorías:{" "}
+              {
+                Object.values(fileMetadata.data_types || {}).filter((t) =>
+                  t.includes("category")
                 ).length
               }
             </span>

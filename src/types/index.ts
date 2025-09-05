@@ -252,10 +252,18 @@ export interface DashboardState {
   layout: Layout[];
 }
 
+export type PageType = "landing" | "processing" | "results" | "dashboard";
+
+export interface NavigationState {
+  currentPage: PageType;
+  pageHistory: PageType[];
+}
+
 export interface AppState
   extends FileUploadState,
     AnalysisState,
-    DashboardState {
+    DashboardState,
+    NavigationState {
   // Actions
   setFile: (file: File | null) => void;
   setFileMetadata: (metadata: FileMetadata | null) => void;
@@ -279,6 +287,12 @@ export interface AppState
   resetUpload: () => void;
   resetAnalysis: () => void;
   resetDashboard: () => void;
+
+  // Navigation functions
+  goBackToResults: () => void;
+  setCurrentPage: (page: PageType) => void;
+  goToPage: (page: PageType) => void;
+  goBack: () => void;
 }
 
 // Component Props

@@ -26,6 +26,19 @@ export interface DataAnalysis {
   uniqueValueCounts: Record<string, number>;
   correlations?: Record<string, Record<string, number>>;
   missingValueCounts: Record<string, number>;
+  summaryStats?: Record<
+    string,
+    {
+      count: number;
+      mean: number;
+      std: number;
+      min: number;
+      "25%": number;
+      "50%": number;
+      "75%": number;
+      max: number;
+    }
+  >;
 }
 
 // Chart recommendation scoring system
@@ -293,8 +306,20 @@ export class ChartRecommendationEngine {
 
     let totalMissingRatio = 0;
     for (const column of keyColumns) {
-      const missingCount = this.dataAnalysis.missingValueCounts[column] || 0;
-      const missingRatio = missingCount / this.dataAnalysis.rowCount;
+      let missingRatio = 0;
+
+      // Use summary stats if available to estimate missing values
+      if (this.dataAnalysis.summaryStats?.[column]) {
+        const stats = this.dataAnalysis.summaryStats[column];
+        const expectedCount = this.dataAnalysis.rowCount;
+        const actualCount = stats.count;
+        missingRatio = (expectedCount - actualCount) / expectedCount;
+      } else {
+        // Fallback to missing value counts
+        const missingCount = this.dataAnalysis.missingValueCounts[column] || 0;
+        missingRatio = missingCount / this.dataAnalysis.rowCount;
+      }
+
       totalMissingRatio += missingRatio;
 
       if (missingRatio < 0.05) {

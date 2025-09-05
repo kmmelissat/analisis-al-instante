@@ -6,6 +6,7 @@ import { Header } from "@/components/ui/Header";
 import { HeroSection } from "@/components/ui/HeroSection";
 import { FileUpload } from "@/components/ui/FileUpload";
 import { DataSchemaPreview } from "@/components/ui/DataSchemaPreview";
+import { DataInsights } from "@/components/ui/DataInsights";
 import { ApiStatus } from "@/components/ui/ApiStatus";
 
 interface LandingScreenProps {
@@ -163,6 +164,9 @@ export function LandingScreen({ onStartAnalysis }: LandingScreenProps) {
 
               {/* Data Schema Preview */}
               <DataSchemaPreview fileMetadata={fileMetadata} />
+
+              {/* Data Insights */}
+              <DataInsights fileMetadata={fileMetadata} />
 
               {/* Continue to Analysis Button */}
               <div className="text-center">

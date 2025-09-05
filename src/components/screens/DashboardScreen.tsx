@@ -5,7 +5,8 @@ import { Layout } from "react-grid-layout";
 import { DashboardGrid } from "@/components/ui/DashboardGrid";
 
 export function DashboardScreen() {
-  const { selectedCharts, layout, updateLayout, removeChart } = useAppStore();
+  const { selectedCharts, layout, updateLayout, removeChart, goToPage } =
+    useAppStore();
 
   const handleLayoutChange = (newLayout: Layout[]) => {
     updateLayout(newLayout);
@@ -40,6 +41,25 @@ export function DashboardScreen() {
           </div>
 
           <div className="flex gap-3">
+            <button
+              onClick={() => goToPage("results")}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium flex items-center gap-2"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+              Back to Charts
+            </button>
             <button
               onClick={handleExport}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
@@ -79,7 +99,10 @@ export function DashboardScreen() {
             <p className="text-gray-500 mb-6">
               Add some charts from the analysis results to get started
             </p>
-            <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+            <button
+              onClick={() => goToPage("results")}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
               + Add More Charts
             </button>
           </div>

@@ -13,6 +13,8 @@ import { LandingScreen } from "@/components/screens/LandingScreen";
 import { ProcessingScreen } from "@/components/screens/ProcessingScreen";
 import { ResultsScreen } from "@/components/screens/ResultsScreen";
 import { DashboardScreen } from "@/components/screens/DashboardScreen";
+import { PageNavigation } from "@/components/ui/PageNavigation";
+import { PageTransition } from "@/components/ui/PageTransition";
 
 // Mock AI analysis function
 const simulateAIAnalysis = async (
@@ -454,7 +456,9 @@ const generateEnhancedRecommendations = (
       rowCount: fileMetadata.shape?.[0] || 0,
       numericColumns: Object.entries(fileMetadata.data_types || {})
         .filter(([_, type]) =>
-          ["int64", "float64", "number"].includes(type as string)
+          ["int64", "float64", "number", "int32", "float32"].includes(
+            type as string
+          )
         )
         .map(([col, _]) => col),
       categoricalColumns: Object.entries(fileMetadata.data_types || {})
@@ -469,6 +473,8 @@ const generateEnhancedRecommendations = (
         .map(([col, _]) => col),
       uniqueValueCounts: {}, // Would need actual data analysis
       missingValueCounts: {}, // Would need actual data analysis
+      // Add summary statistics if available
+      summaryStats: fileMetadata.summary_stats || {},
     };
 
     // Use the recommendation engine
@@ -487,7 +493,9 @@ const generateBasicRecommendations = (
 ): RecommendedChart[] => {
   const numericColumns = Object.entries(fileMetadata.data_types || {})
     .filter(([_, type]) =>
-      ["int64", "float64", "number"].includes(type as string)
+      ["int64", "float64", "number", "int32", "float32"].includes(
+        type as string
+      )
     )
     .map(([col, _]) => col);
 
@@ -499,34 +507,58 @@ const generateBasicRecommendations = (
 
   const recommendations: RecommendedChart[] = [];
 
-  // Basic bar chart
+  // Enhanced bar chart with statistics
   if (categoricalColumns.length > 0 && numericColumns.length > 0) {
+    const bestNumeric =
+      numericColumns.find((col) => fileMetadata.summary_stats?.[col]) ||
+      numericColumns[0];
+    const stats = fileMetadata.summary_stats?.[bestNumeric];
+
     recommendations.push({
-      title: `${numericColumns[0]} by ${categoricalColumns[0]}`,
+      title: `${bestNumeric} by ${categoricalColumns[0]}`,
       chart_type: "bar",
       parameters: {
         x_axis: categoricalColumns[0],
-        y_axis: numericColumns[0],
+        y_axis: bestNumeric,
         aggregation: "sum",
+        sort_order: "desc",
       },
-      insight:
-        "Compare values across categories to identify patterns and outliers.",
+      insight: stats
+        ? `Compare ${bestNumeric} across categories. Range: ${stats.min.toLocaleString()} - ${stats.max.toLocaleString()}, Average: ${stats.mean.toLocaleString(
+            undefined,
+            { maximumFractionDigits: 1 }
+          )}`
+        : "Compare values across categories to identify patterns and outliers.",
       priority: 1,
       confidence: 85,
     });
   }
 
-  // Histogram for numeric data
+  // Enhanced histogram with optimal bins
   if (numericColumns.length > 0) {
+    const bestNumeric =
+      numericColumns.find((col) => fileMetadata.summary_stats?.[col]) ||
+      numericColumns[0];
+    const stats = fileMetadata.summary_stats?.[bestNumeric];
+    const optimalBins = stats
+      ? Math.min(Math.max(Math.ceil(Math.sqrt(stats.count)), 10), 50)
+      : 20;
+
     recommendations.push({
-      title: `Distribution of ${numericColumns[0]}`,
+      title: `Distribution of ${bestNumeric}`,
       chart_type: "histogram",
       parameters: {
-        x_axis: numericColumns[0],
-        bins: 20,
+        x_axis: bestNumeric,
+        bins: optimalBins,
       },
-      insight:
-        "Analyze the distribution pattern to understand data spread and identify outliers.",
+      insight: stats
+        ? `Analyze distribution pattern. Mean: ${stats.mean.toLocaleString(
+            undefined,
+            { maximumFractionDigits: 1 }
+          )}, Std Dev: ${stats.std.toLocaleString(undefined, {
+            maximumFractionDigits: 1,
+          })}`
+        : "Analyze the distribution pattern to understand data spread and identify outliers.",
       priority: 2,
       confidence: 80,
     });
@@ -574,6 +606,7 @@ export function AppContainer() {
     isAnalyzing,
     suggestions,
     selectedCharts,
+    currentPage,
     setAnalyzing,
     setAnalysisProgress,
     setAnalysisStep,
@@ -581,26 +614,43 @@ export function AppContainer() {
     setSuggestions,
     setAnalysisError,
     resetAnalysis,
+    setCurrentPage,
   } = useAppStore();
 
-  // Determine current screen based on app state
-  const getCurrentScreen = () => {
-    console.log("🔍 Determining screen:", {
-      selectedCharts: selectedCharts.length,
-      suggestions: suggestions.length,
-      isAnalyzing,
-      fileMetadata: !!fileMetadata,
-    });
+  // Update page based on app state
+  const updatePageBasedOnState = () => {
+    let newPage = currentPage;
 
-    if (selectedCharts.length > 0) return "dashboard";
-    if (suggestions.length > 0) return "results";
-    if (isAnalyzing) return "processing";
-    return "landing";
+    if (selectedCharts.length > 0 && currentPage !== "dashboard") {
+      newPage = "dashboard";
+    } else if (
+      suggestions.length > 0 &&
+      selectedCharts.length === 0 &&
+      currentPage !== "results"
+    ) {
+      newPage = "results";
+    } else if (isAnalyzing && currentPage !== "processing") {
+      newPage = "processing";
+    } else if (
+      !isAnalyzing &&
+      suggestions.length === 0 &&
+      selectedCharts.length === 0 &&
+      currentPage !== "landing"
+    ) {
+      newPage = "landing";
+    }
+
+    if (newPage !== currentPage) {
+      setCurrentPage(newPage);
+    }
+
+    return newPage;
   };
 
   // Real AI analysis function
   const performAnalysis = async (fileId: string) => {
     console.log("🚀 Starting analysis for file:", fileId);
+    setCurrentPage("processing");
     setAnalyzing(true);
     setAnalysisError(null);
     resetAnalysis();
@@ -651,6 +701,7 @@ export function AppContainer() {
         fileMetadata
       );
       setSuggestions(analysisCards);
+      setCurrentPage("results");
     } catch (error) {
       console.error("❌ Analysis failed:", error);
 
@@ -665,19 +716,23 @@ export function AppContainer() {
     }
   };
 
-  // Don't auto-start analysis anymore - wait for user to click button
-  // This gives users a chance to review the data schema first
-
-  const currentScreen = getCurrentScreen();
+  // Update page based on current state
+  const screenToShow = updatePageBasedOnState();
 
   return (
     <div className="min-h-screen">
-      {currentScreen === "landing" && (
-        <LandingScreen onStartAnalysis={performAnalysis} />
-      )}
-      {currentScreen === "processing" && <ProcessingScreen />}
-      {currentScreen === "results" && <ResultsScreen />}
-      {currentScreen === "dashboard" && <DashboardScreen />}
+      {/* Page Navigation - only show if not on landing page */}
+      {screenToShow !== "landing" && <PageNavigation />}
+
+      {/* Page Content with smooth transitions */}
+      <PageTransition currentPage={screenToShow}>
+        {screenToShow === "landing" && (
+          <LandingScreen onStartAnalysis={performAnalysis} />
+        )}
+        {screenToShow === "processing" && <ProcessingScreen />}
+        {screenToShow === "results" && <ResultsScreen />}
+        {screenToShow === "dashboard" && <DashboardScreen />}
+      </PageTransition>
     </div>
   );
 }
