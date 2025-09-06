@@ -146,6 +146,73 @@ export interface AnalyzeResponse {
   message: string;
 }
 
+// Actual API response format (different from expected)
+export interface ActualAnalyzeResponse {
+  file_id: string;
+  analysis_timestamp: string;
+  data_overview: {
+    total_rows: number;
+    total_columns: number;
+    numeric_columns: string[];
+    categorical_columns: string[];
+    missing_values_count: number;
+  };
+  suggestions: Array<{
+    title: string;
+    chart_type: ChartType;
+    insight: string;
+    parameters: ChartParameters;
+    priority: number;
+  }>;
+}
+
+// Utility function to transform actual API response to expected format
+export function transformAnalyzeResponse(
+  actual: ActualAnalyzeResponse
+): AnalyzeResponse {
+  return {
+    file_id: actual.file_id,
+    filename: `Analysis ${actual.analysis_timestamp}`, // Default filename since it's not provided
+    data_summary: {
+      total_rows: actual.data_overview.total_rows,
+      total_columns: actual.data_overview.total_columns,
+      numeric_columns: actual.data_overview.numeric_columns,
+      categorical_columns: actual.data_overview.categorical_columns,
+      datetime_columns: [], // Not provided in actual response
+      missing_data_summary: {}, // Not provided in actual response
+    },
+    ai_insights: {
+      overview: `Your dataset contains ${actual.data_overview.total_rows} records with ${actual.data_overview.total_columns} columns. Analysis includes ${actual.data_overview.numeric_columns.length} numeric columns and ${actual.data_overview.categorical_columns.length} categorical columns.`,
+      key_patterns: actual.suggestions.map((s) => s.insight),
+      data_quality_notes:
+        actual.data_overview.missing_values_count > 0
+          ? [
+              `Dataset has ${actual.data_overview.missing_values_count} missing values`,
+            ]
+          : ["No missing values detected"],
+      recommended_analysis_approach:
+        "Start with overview charts to understand data distribution, then explore relationships between variables.",
+    },
+    suggested_charts: actual.suggestions.map((s) => ({
+      chart_type: s.chart_type,
+      title: s.title,
+      description: s.insight,
+      reasoning: `Recommended based on data characteristics and ${s.chart_type} chart suitability`,
+      parameters: s.parameters,
+      priority: s.priority,
+      category:
+        s.priority >= 4
+          ? "overview"
+          : ("detailed" as
+              | "overview"
+              | "detailed"
+              | "statistical"
+              | "comparative"),
+    })),
+    message: `Analysis complete! Generated ${actual.suggestions.length} chart recommendations.`,
+  };
+}
+
 export interface ChartRequest {
   file_id: string;
   chart_type: ChartType;

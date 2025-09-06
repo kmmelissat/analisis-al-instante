@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AnalyzeResponse, AIChartSuggestion, ChartType } from "@/types/charts";
-
-// Mock data storage - in production, use a database
-const fileStorage = new Map<string, any>();
+import { serverFileStorage } from "@/lib/storage";
 
 export async function POST(
   request: NextRequest,
@@ -12,7 +10,7 @@ export async function POST(
     const { file_id } = await params;
 
     // Get the stored file data (in production, fetch from database)
-    const fileData = fileStorage.get(file_id);
+    const fileData = serverFileStorage.get(file_id);
 
     if (!fileData) {
       return NextResponse.json(
@@ -384,7 +382,4 @@ function generateChartSuggestions(
   return suggestions.slice(0, 8);
 }
 
-// Store file data for analysis (temporary - in production use database)
-export function storeFileData(fileId: string, data: any) {
-  fileStorage.set(fileId, data);
-}
+// Note: File storage is now handled by the shared storage system in @/lib/storage

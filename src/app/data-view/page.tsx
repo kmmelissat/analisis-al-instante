@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { UploadResponse } from "@/types/upload";
 import { AnalyzeResponse } from "@/types/charts";
 import { useAnalyze } from "@/hooks/useAnalyze";
+import { useFileStore } from "@/lib/storage";
 import { Logo } from "@/components/Logo";
 import { FileInfoCard } from "@/components/data-view/FileInfoCard";
 import { ColumnInfoGrid } from "@/components/data-view/ColumnInfoGrid";
@@ -27,6 +28,9 @@ export default function DataViewPage() {
     data: analyzeData,
   } = useAnalyze();
   const [loading, setLoading] = useState(true);
+
+  // Use Zustand store for file data
+  const { getFile } = useFileStore();
 
   // Handle missing fileId
   if (!fileId) {
@@ -66,18 +70,17 @@ export default function DataViewPage() {
 
   useEffect(() => {
     if (fileId) {
-      const storedData = sessionStorage.getItem(`analysis_${fileId}`);
-      if (storedData) {
-        try {
-          const data = JSON.parse(storedData);
-          setAnalysisData(data);
-        } catch (error) {
-          console.error("Error parsing stored data:", error);
-        }
+      // Get file data from Zustand store (persisted in localStorage)
+      const fileData = getFile(fileId);
+      if (fileData) {
+        console.log(`[DataView] Found file data for ${fileId}`);
+        setAnalysisData(fileData as UploadResponse);
+      } else {
+        console.log(`[DataView] No file data found for ${fileId}`);
       }
     }
     setLoading(false);
-  }, [fileId]);
+  }, [fileId, getFile]);
 
   // Handle analyze data updates
   useEffect(() => {

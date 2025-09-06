@@ -3,6 +3,8 @@
 import { useState, useCallback } from "react";
 import axios, { AxiosProgressEvent } from "axios";
 import { UploadResponse, UploadError, UploadState } from "@/types/upload";
+import { useFileStore } from "@/lib/storage";
+import { apiClient, API_ENDPOINTS } from "@/lib/api";
 
 interface UseFileUploadOptions {
   endpoint?: string;
@@ -12,7 +14,13 @@ interface UseFileUploadOptions {
 }
 
 export function useFileUpload(options: UseFileUploadOptions = {}) {
-  const { endpoint = "/api/upload", onSuccess, onError, onProgress } = options;
+  const {
+    endpoint = API_ENDPOINTS.upload,
+    onSuccess,
+    onError,
+    onProgress,
+  } = options;
+  const { storeFile } = useFileStore();
 
   const [state, setState] = useState<UploadState>({
     data: null,
@@ -36,22 +44,28 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
         const formData = new FormData();
         formData.append("file", file);
 
-        // Make request with axios
-        const response = await axios.post<UploadResponse>(endpoint, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-          timeout: 300000, // 5 minutes timeout
-          onUploadProgress: (progressEvent: AxiosProgressEvent) => {
-            if (progressEvent.total) {
-              const progress = Math.round(
-                (progressEvent.loaded / progressEvent.total) * 100
-              );
-              setState((prev) => ({ ...prev, progress }));
-              onProgress?.(progress);
-            }
-          },
-        });
+        // Make request with apiClient
+        const response = await apiClient.post<UploadResponse>(
+          endpoint,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+            onUploadProgress: (progressEvent: AxiosProgressEvent) => {
+              if (progressEvent.total) {
+                const progress = Math.round(
+                  (progressEvent.loaded / progressEvent.total) * 100
+                );
+                setState((prev) => ({ ...prev, progress }));
+                onProgress?.(progress);
+              }
+            },
+          }
+        );
+
+        // Store in Zustand store for persistence
+        storeFile(response.data.file_id, response.data as any);
 
         // Update state with success
         setState({
@@ -122,7 +136,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
         throw uploadError;
       }
     },
-    [endpoint, onSuccess, onError, onProgress]
+    [endpoint, onSuccess, onError, onProgress, storeFile]
   );
 
   const reset = useCallback(() => {
@@ -172,7 +186,7 @@ export function useFileUpload(options: UseFileUploadOptions = {}) {
 }
 
 // Alternative hook for simpler use cases
-export function useSimpleFileUpload(endpoint = "/api/upload") {
+export function useSimpleFileUpload(endpoint = API_ENDPOINTS.upload) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -184,12 +198,15 @@ export function useSimpleFileUpload(endpoint = "/api/upload") {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await axios.post<UploadResponse>(endpoint, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        timeout: 300000, // 5 minutes timeout
-      });
+      const response = await apiClient.post<UploadResponse>(
+        endpoint,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       return response.data;
     } catch (err) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
-import { storeFileData } from "../analyze/[file_id]/route";
+import { storeFileData } from "@/lib/storage";
 
 // Helper function to detect data type
 function detectDataType(values: any[]): string {
@@ -174,6 +174,12 @@ export async function POST(request: NextRequest) {
         }
       });
 
+      // Convert data to sample_data format for chart generation
+      const sampleData: Record<string, any[]> = {};
+      columns.forEach((column, colIndex) => {
+        sampleData[column] = data.map((row) => row[colIndex]);
+      });
+
       // Generate response
       const response = {
         file_id: `file_${Date.now()}_${Math.random()
@@ -184,6 +190,7 @@ export async function POST(request: NextRequest) {
         data_types: dataTypes,
         shape: [data.length, columns.length],
         summary_stats: summaryStats,
+        sample_data: sampleData, // Add sample data for chart generation
         message: `File processed successfully! Analyzed ${
           data.length
         } rows and ${columns.length} columns with ${
@@ -192,7 +199,11 @@ export async function POST(request: NextRequest) {
       };
 
       // Store file data for analysis
-      storeFileData(response.file_id, response);
+      console.log(`[Upload] Storing file data for ID: ${response.file_id}`);
+      console.log(`[Upload] Sample data columns:`, Object.keys(sampleData));
+      console.log(`[Upload] Response keys:`, Object.keys(response));
+      storeFileData(response.file_id, response as any);
+      console.log(`[Upload] File data stored successfully`);
 
       return NextResponse.json(response);
     } catch (parseError) {

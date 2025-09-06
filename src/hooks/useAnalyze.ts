@@ -1,6 +1,11 @@
 import { useState } from "react";
 import axios from "axios";
-import { AnalyzeResponse } from "@/types/charts";
+import {
+  AnalyzeResponse,
+  ActualAnalyzeResponse,
+  transformAnalyzeResponse,
+} from "@/types/charts";
+import { apiClient, API_ENDPOINTS } from "@/lib/api";
 
 interface AnalyzeError {
   message: string;
@@ -30,14 +35,18 @@ export function useAnalyze(): UseAnalyzeReturn {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const response = await axios.post(`/api/analyze/${fileId}`, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await apiClient.post<ActualAnalyzeResponse>(
+        API_ENDPOINTS.analyze(fileId),
+        {}
+      );
+
+      // Transform the actual API response to the expected format
+      console.log("[useAnalyze] Raw API response:", response.data);
+      const transformedData = transformAnalyzeResponse(response.data);
+      console.log("[useAnalyze] Transformed data:", transformedData);
 
       setState({
-        data: response.data,
+        data: transformedData,
         loading: false,
         error: null,
       });
