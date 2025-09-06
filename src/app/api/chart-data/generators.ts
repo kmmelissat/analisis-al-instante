@@ -3,6 +3,7 @@
 export function generateBarChartData(data: any[], parameters: any) {
   const {
     x_axis,
+    y_axis,
     aggregation = "count",
     sort_order = "desc",
     limit = 10,
@@ -22,30 +23,62 @@ export function generateBarChartData(data: any[], parameters: any) {
 
     if (aggregation === "count") {
       aggregatedValue = count;
-    } else {
-      // For non-count aggregations, we need a numeric column to aggregate
-      // If x_axis is not numeric (like dates), we should still use count
+    } else if (y_axis) {
+      // Use y_axis column for aggregation
       const numericValues = (values as any[])
-        .map((v) => parseFloat(v[x_axis]))
+        .map((v) => parseFloat(v[y_axis]))
         .filter((v) => !isNaN(v));
+
       if (numericValues.length === 0) {
         // If no numeric values, fall back to count
         aggregatedValue = count;
       } else {
-        aggregatedValue = numericValues.reduce((sum, v) => sum + v, 0);
+        // Apply aggregation function
+        switch (aggregation) {
+          case "mean":
+            aggregatedValue =
+              numericValues.reduce((sum, v) => sum + v, 0) /
+              numericValues.length;
+            break;
+          case "sum":
+            aggregatedValue = numericValues.reduce((sum, v) => sum + v, 0);
+            break;
+          case "max":
+            aggregatedValue = Math.max(...numericValues);
+            break;
+          case "min":
+            aggregatedValue = Math.min(...numericValues);
+            break;
+          default:
+            aggregatedValue =
+              numericValues.reduce((sum, v) => sum + v, 0) /
+              numericValues.length;
+        }
       }
+    } else {
+      // No y_axis specified, use count
+      aggregatedValue = count;
     }
 
-    return {
+    // Create data point with actual column names
+    const dataPoint: any = {
       [x_axis]: key,
-      count: count,
-      value: aggregatedValue,
     };
+
+    // Use y_axis name if provided, otherwise use 'value'
+    if (y_axis) {
+      dataPoint[y_axis] = aggregatedValue;
+    } else {
+      dataPoint.value = aggregatedValue;
+    }
+
+    return dataPoint;
   });
 
   // Sort and limit
+  const sortKey = y_axis || "value";
   chartData.sort((a, b) =>
-    sort_order === "desc" ? b.value - a.value : a.value - b.value
+    sort_order === "desc" ? b[sortKey] - a[sortKey] : a[sortKey] - b[sortKey]
   );
   chartData = chartData.slice(0, limit);
 
@@ -57,23 +90,33 @@ export function generateBarChartData(data: any[], parameters: any) {
     data: chartData,
     metadata: {
       x_column: x_axis,
+      y_column: y_axis,
       total_points: chartData.length,
       aggregation,
     },
-    title: `${x_axis.replace(/_/g, " ")} Distribution`,
-    insight: `This bar chart shows the distribution of ${x_axis.replace(
-      /_/g,
-      " "
-    )} values, with ${chartData.length} categories displayed.`,
+    title: y_axis
+      ? `${x_axis.replace(/_/g, " ")} vs ${y_axis.replace(/_/g, " ")}`
+      : `${x_axis.replace(/_/g, " ")} Distribution`,
+    insight: y_axis
+      ? `This bar chart shows the ${aggregation} of ${y_axis.replace(
+          /_/g,
+          " "
+        )} by ${x_axis.replace(/_/g, " ")}, with ${
+          chartData.length
+        } categories displayed.`
+      : `This bar chart shows the distribution of ${x_axis.replace(
+          /_/g,
+          " "
+        )} values, with ${chartData.length} categories displayed.`,
     interpretation:
       chartData.length > 0
         ? `The highest value is "${chartData[0][x_axis]}" with ${
-            chartData[0].value
-          } occurrences. ${
+            chartData[0][y_axis || "value"]
+          } ${y_axis ? y_axis.replace(/_/g, " ") : "occurrences"}. ${
             chartData.length > 1
               ? `The data shows ${
                   sort_order === "desc" ? "decreasing" : "increasing"
-                } frequency across categories.`
+                } values across categories.`
               : ""
           }`
         : "No data available for interpretation.",
@@ -81,21 +124,62 @@ export function generateBarChartData(data: any[], parameters: any) {
 }
 
 export function generatePieChartData(data: any[], parameters: any) {
-  const { x_axis, percentage = true, limit = 7 } = parameters;
+  const { x_axis, y_axis, aggregation = "count", percentage = true, limit = 7 } = parameters;
 
   const grouped = data.reduce((acc, row) => {
     const key = row[x_axis];
-    acc[key] = (acc[key] || 0) + 1;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(row);
     return acc;
   }, {});
 
-  let chartData = Object.entries(grouped).map(([key, count]) => ({
-    name: key,
-    value: count as number,
-    percentage: percentage
-      ? Math.round(((count as number) / data.length) * 100)
-      : (count as number),
-  }));
+  let chartData = Object.entries(grouped).map(([key, values]) => {
+    const count = (values as any[]).length;
+    let aggregatedValue;
+
+    if (aggregation === "count") {
+      aggregatedValue = count;
+    } else if (y_axis) {
+      // Use y_axis column for aggregation
+      const numericValues = (values as any[])
+        .map((v) => parseFloat(v[y_axis]))
+        .filter((v) => !isNaN(v));
+      
+      if (numericValues.length === 0) {
+        aggregatedValue = count;
+      } else {
+        switch (aggregation) {
+          case "mean":
+            aggregatedValue = numericValues.reduce((sum, v) => sum + v, 0) / numericValues.length;
+            break;
+          case "sum":
+            aggregatedValue = numericValues.reduce((sum, v) => sum + v, 0);
+            break;
+          case "max":
+            aggregatedValue = Math.max(...numericValues);
+            break;
+          case "min":
+            aggregatedValue = Math.min(...numericValues);
+            break;
+          default:
+            aggregatedValue = numericValues.reduce((sum, v) => sum + v, 0);
+        }
+      }
+    } else {
+      aggregatedValue = count;
+    }
+
+    return {
+      name: key,
+      value: aggregatedValue,
+      percentage: percentage
+        ? Math.round((aggregatedValue / data.reduce((sum, row) => {
+            const val = y_axis ? parseFloat(row[y_axis]) || 0 : 1;
+            return sum + val;
+          }, 0)) * 100)
+        : aggregatedValue,
+    };
+  });
 
   chartData.sort((a, b) => (b.value as number) - (a.value as number));
   chartData = chartData.slice(0, limit);
@@ -104,19 +188,22 @@ export function generatePieChartData(data: any[], parameters: any) {
     data: chartData,
     metadata: {
       x_column: x_axis,
+      y_column: y_axis,
       total_points: chartData.length,
       show_percentage: percentage,
+      aggregation,
     },
-    title: `${x_axis.replace(/_/g, " ")} Composition`,
-    insight: `This pie chart shows the proportional breakdown of ${x_axis.replace(
-      /_/g,
-      " "
-    )} categories.`,
+    title: y_axis 
+      ? `${x_axis.replace(/_/g, " ")} vs ${y_axis.replace(/_/g, " ")}`
+      : `${x_axis.replace(/_/g, " ")} Composition`,
+    insight: y_axis
+      ? `This pie chart shows the ${aggregation} of ${y_axis.replace(/_/g, " ")} by ${x_axis.replace(/_/g, " ")} categories.`
+      : `This pie chart shows the proportional breakdown of ${x_axis.replace(/_/g, " ")} categories.`,
     interpretation:
       chartData.length > 0
         ? `The largest segment is "${chartData[0].name}" representing ${
             chartData[0].percentage
-          }% of the total. ${
+          }% of the total${y_axis ? ` ${y_axis.replace(/_/g, " ")}` : ""}. ${
             chartData.length > 1
               ? `The distribution shows ${chartData.length} different categories.`
               : ""

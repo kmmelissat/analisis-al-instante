@@ -73,7 +73,7 @@ export function ChartRenderer({
 
   const renderBarChart = () => {
     const xKey = metadata.x_column;
-    const yKey = "value";
+    const yKey = metadata.y_column || "value"; // Use actual y_column from metadata
 
     console.log("[ChartRenderer] Bar chart data:", data);
     console.log("[ChartRenderer] Bar chart metadata:", metadata);
@@ -128,11 +128,32 @@ export function ChartRenderer({
   };
 
   const renderPieChart = () => {
+    console.log("[ChartRenderer] Pie chart data:", data);
+    console.log("[ChartRenderer] Pie chart metadata:", metadata);
+
+    // Safety check for empty data
+    if (!data || data.length === 0) {
+      return (
+        <div className="h-64 flex items-center justify-center text-gray-500">
+          No data available for pie chart
+        </div>
+      );
+    }
+
+    // Transform data to ensure consistent structure (handle both 'name' and 'label')
+    const normalizedData = data.map(item => ({
+      name: item.name || item.label || 'Unknown',
+      value: item.value || 0,
+      percentage: item.percentage || Math.round((item.value / data.reduce((sum, d) => sum + (d.value || 0), 0)) * 100)
+    }));
+
+    console.log("[ChartRenderer] Normalized pie data:", normalizedData);
+
     return (
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie
-            data={data}
+            data={normalizedData}
             cx="50%"
             cy="50%"
             labelLine={false}
@@ -141,7 +162,7 @@ export function ChartRenderer({
             fill="#8884d8"
             dataKey="value"
           >
-            {data.map((entry, index) => (
+            {normalizedData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
                 fill={COLORS[index % COLORS.length]}
