@@ -507,3 +507,131 @@ export function generateRadarChartData(data: any[], parameters: any) {
         : "No data available for interpretation.",
   };
 }
+
+export function generateHeatmapData(data: any[], parameters: any) {
+  const {
+    x_axis,
+    y_axis,
+    value_column = null,
+    bins_x = 10,
+    bins_y = 10,
+  } = parameters;
+
+  console.log("[generateHeatmapData] Parameters:", {
+    x_axis,
+    y_axis,
+    value_column,
+    bins_x,
+    bins_y,
+  });
+
+  if (!x_axis || !y_axis) {
+    throw new Error("Heatmap requires both x_axis and y_axis parameters");
+  }
+
+  // Get unique categories for x and y axes
+  const xValues = [...new Set(data.map((row) => String(row[x_axis])))].sort();
+  const yValues = [...new Set(data.map((row) => String(row[y_axis])))].sort();
+
+  console.log("[generateHeatmapData] Categories:", {
+    xValues: xValues.length,
+    yValues: yValues.length,
+  });
+
+  // Create a map to count occurrences or aggregate values
+  const heatmapMap = new Map();
+  let maxValue = 0;
+  let minValue = Infinity;
+
+  // Initialize all combinations with 0
+  xValues.forEach((x) => {
+    yValues.forEach((y) => {
+      heatmapMap.set(`${x}-${y}`, 0);
+    });
+  });
+
+  // Populate the heatmap with data
+  data.forEach((row) => {
+    const x = String(row[x_axis]);
+    const y = String(row[y_axis]);
+    const key = `${x}-${y}`;
+
+    if (value_column && row[value_column] !== undefined) {
+      // Use the specified value column
+      const value = parseFloat(row[value_column]) || 0;
+      heatmapMap.set(key, (heatmapMap.get(key) || 0) + value);
+    } else {
+      // Count occurrences
+      heatmapMap.set(key, (heatmapMap.get(key) || 0) + 1);
+    }
+  });
+
+  // Find min and max values
+  heatmapMap.forEach((value) => {
+    maxValue = Math.max(maxValue, value);
+    minValue = Math.min(minValue, value);
+  });
+
+  // Convert to array format expected by the renderer
+  const heatmapData: any[] = [];
+
+  xValues.forEach((x, xIndex) => {
+    yValues.forEach((y, yIndex) => {
+      const key = `${x}-${y}`;
+      const value = heatmapMap.get(key) || 0;
+
+      heatmapData.push({
+        x: x,
+        y: y,
+        value: value,
+        x_index: xIndex,
+        y_index: yIndex,
+      });
+    });
+  });
+
+  console.log(
+    "[generateHeatmapData] Generated data points:",
+    heatmapData.length
+  );
+  console.log("[generateHeatmapData] Value range:", { minValue, maxValue });
+
+  return {
+    data: heatmapData,
+    metadata: {
+      x_column: x_axis,
+      y_column: y_axis,
+      value_column: value_column,
+      x_categories: xValues,
+      y_categories: yValues,
+      total_points: heatmapData.length,
+      max_value: maxValue,
+      min_value: minValue,
+    },
+    title: `${x_axis.replace(/_/g, " ")} vs ${y_axis.replace(/_/g, " ")}`,
+    insight: value_column
+      ? `This heatmap shows the distribution of ${value_column.replace(
+          /_/g,
+          " "
+        )} across ${x_axis.replace(/_/g, " ")} and ${y_axis.replace(
+          /_/g,
+          " "
+        )} combinations.`
+      : `This heatmap shows the frequency of occurrences for each combination of ${x_axis.replace(
+          /_/g,
+          " "
+        )} and ${y_axis.replace(/_/g, " ")}.`,
+    interpretation:
+      heatmapData.length > 0
+        ? `The heatmap displays ${xValues.length} x ${
+            yValues.length
+          } cells with values ranging from ${minValue} to ${maxValue}. ${
+            maxValue > 0
+              ? `The highest intensity areas indicate the most ${
+                  value_column ? "significant values" : "frequent combinations"
+                }.`
+              : "Most combinations show zero or minimal activity."
+          } Look for patterns, clusters, or gaps in the data distribution.`
+        : "No data available for interpretation.",
+  };
+}

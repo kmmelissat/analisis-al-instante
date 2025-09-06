@@ -66,6 +66,8 @@ export function ChartRenderer({
         return renderRadarChart();
       case "box":
         return renderBoxChart();
+      case "heatmap":
+        return renderHeatmap();
       default:
         return renderPlaceholder();
     }
@@ -394,6 +396,183 @@ export function ChartRenderer({
           {/* Median line would need custom implementation */}
         </BarChart>
       </ResponsiveContainer>
+    );
+  };
+
+  const renderHeatmap = () => {
+    console.log("[ChartRenderer] Heatmap data:", data);
+    console.log("[ChartRenderer] Heatmap metadata:", metadata);
+
+    if (!data || data.length === 0) {
+      return (
+        <div className="h-64 flex items-center justify-center text-gray-500">
+          No data available for heatmap
+        </div>
+      );
+    }
+
+    // Extract unique x and y categories from metadata or data
+    const xCategories =
+      metadata.x_categories || [...new Set(data.map((d) => d.x))].sort();
+    const yCategories =
+      metadata.y_categories || [...new Set(data.map((d) => d.y))].sort();
+    const maxValue =
+      metadata.max_value || Math.max(...data.map((d) => d.value || 0));
+    const minValue =
+      metadata.min_value || Math.min(...data.map((d) => d.value || 0));
+
+    console.log("[ChartRenderer] Heatmap categories:", {
+      xCategories,
+      yCategories,
+      maxValue,
+      minValue,
+    });
+
+    // Create a lookup map for quick access to values
+    const valueMap = new Map();
+    data.forEach((item) => {
+      const key = `${item.x}-${item.y}`;
+      valueMap.set(key, item.value || 0);
+    });
+
+    // Calculate cell dimensions
+    const cellWidth = Math.max(40, Math.min(80, 600 / xCategories.length));
+    const cellHeight = Math.max(20, Math.min(40, 300 / yCategories.length));
+    const chartWidth = cellWidth * xCategories.length + 100; // padding for labels
+    const chartHeight = cellHeight * yCategories.length + 80; // padding for labels
+
+    // Color intensity function
+    const getColorIntensity = (value: number) => {
+      if (maxValue === minValue) return 0.5;
+      return (value - minValue) / (maxValue - minValue);
+    };
+
+    // Color function - using a blue to red gradient
+    const getColor = (value: number) => {
+      const intensity = getColorIntensity(value);
+      if (value === 0) return "#1f2937"; // Dark gray for zero values
+
+      // Blue to red gradient
+      const red = Math.round(intensity * 255);
+      const blue = Math.round((1 - intensity) * 255);
+      const green = Math.round(Math.min(red, blue) * 0.3);
+
+      return `rgb(${red}, ${green}, ${blue})`;
+    };
+
+    return (
+      <div className="w-full overflow-auto">
+        <svg
+          width={chartWidth}
+          height={chartHeight}
+          className="bg-slate-900/50 rounded-lg"
+        >
+          {/* Y-axis labels */}
+          {yCategories.map((yLabel: string, yIndex: number) => (
+            <text
+              key={`y-${yIndex}`}
+              x={90}
+              y={yIndex * cellHeight + cellHeight / 2 + 50}
+              textAnchor="end"
+              dominantBaseline="middle"
+              fill="#9ca3af"
+              fontSize="10"
+            >
+              {String(yLabel).length > 8
+                ? String(yLabel).substring(0, 8) + "..."
+                : yLabel}
+            </text>
+          ))}
+
+          {/* X-axis labels */}
+          {xCategories.map((xLabel: string, xIndex: number) => (
+            <text
+              key={`x-${xIndex}`}
+              x={xIndex * cellWidth + cellWidth / 2 + 100}
+              y={chartHeight - 20}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill="#9ca3af"
+              fontSize="10"
+              transform={
+                xCategories.length > 10
+                  ? `rotate(-45, ${xIndex * cellWidth + cellWidth / 2 + 100}, ${
+                      chartHeight - 20
+                    })`
+                  : ""
+              }
+            >
+              {String(xLabel).length > 6
+                ? String(xLabel).substring(0, 6) + "..."
+                : xLabel}
+            </text>
+          ))}
+
+          {/* Heatmap cells */}
+          {yCategories.map((yLabel: string, yIndex: number) =>
+            xCategories.map((xLabel: string, xIndex: number) => {
+              const value = valueMap.get(`${xLabel}-${yLabel}`) || 0;
+              const color = getColor(value);
+
+              return (
+                <g key={`cell-${xIndex}-${yIndex}`}>
+                  <rect
+                    x={xIndex * cellWidth + 100}
+                    y={yIndex * cellHeight + 40}
+                    width={cellWidth - 1}
+                    height={cellHeight - 1}
+                    fill={color}
+                    stroke="#374151"
+                    strokeWidth="0.5"
+                  />
+                  {/* Value text (only show if cell is large enough and value > 0) */}
+                  {cellWidth > 50 && cellHeight > 25 && value > 0 && (
+                    <text
+                      x={xIndex * cellWidth + cellWidth / 2 + 100}
+                      y={yIndex * cellHeight + cellHeight / 2 + 40}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fill={
+                        getColorIntensity(value) > 0.5 ? "#ffffff" : "#000000"
+                      }
+                      fontSize="9"
+                      fontWeight="bold"
+                    >
+                      {value}
+                    </text>
+                  )}
+                </g>
+              );
+            })
+          )}
+
+          {/* Legend */}
+          <g transform={`translate(${chartWidth - 80}, 40)`}>
+            <text x="0" y="0" fill="#9ca3af" fontSize="10" fontWeight="bold">
+              Scale
+            </text>
+            {[0, 0.25, 0.5, 0.75, 1].map((intensity, i) => {
+              const value = minValue + intensity * (maxValue - minValue);
+              const color = getColor(value);
+              return (
+                <g key={i} transform={`translate(0, ${i * 20 + 15})`}>
+                  <rect
+                    x="0"
+                    y="0"
+                    width="15"
+                    height="15"
+                    fill={color}
+                    stroke="#374151"
+                  />
+                  <text x="20" y="12" fill="#9ca3af" fontSize="9">
+                    {value.toFixed(1)}
+                  </text>
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+      </div>
     );
   };
 

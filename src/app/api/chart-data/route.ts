@@ -7,6 +7,7 @@ import {
   generateHistogramData,
   generateBoxPlotData,
   generateRadarChartData,
+  generateHeatmapData,
 } from "./generators";
 import { serverFileStorage } from "@/lib/storage";
 
@@ -132,7 +133,7 @@ function generateChartData(fileData: any, chartType: string, parameters: any) {
     case "bubble":
       return generateScatterChartData(dataArray, parameters); // Use scatter for now
     case "heatmap":
-      return generateBarChartData(dataArray, parameters); // Use bar chart for now
+      return generateHeatmapData(dataArray, parameters);
     case "radar":
       return generateRadarChartData(dataArray, parameters);
     default:
