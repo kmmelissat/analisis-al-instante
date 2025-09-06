@@ -28,9 +28,43 @@ export default function DataViewPage() {
   } = useAnalyze();
   const [loading, setLoading] = useState(true);
 
+  // Handle missing fileId
+  if (!fileId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto">
+          <div className="w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center mx-auto mb-6">
+            <svg
+              className="w-8 h-8 text-yellow-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+              />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-4">Invalid Access</h1>
+          <p className="text-gray-400 mb-6">
+            No file ID was provided. Please upload a file first to view analysis
+            results.
+          </p>
+          <button
+            onClick={() => router.push("/")}
+            className="btn-gradient px-6 py-3 rounded-xl font-semibold text-white w-full"
+          >
+            Go to Upload
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   useEffect(() => {
-    // In a real implementation, you'd store the analysis data in a database
-    // and fetch it by fileId. For now, we'll check if there's data in sessionStorage
     if (fileId) {
       const storedData = sessionStorage.getItem(`analysis_${fileId}`);
       if (storedData) {
@@ -76,17 +110,46 @@ export default function DataViewPage() {
   if (!analysisData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">No Data Found</h1>
+        <div className="text-center max-w-md mx-auto">
+          <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-6">
+            <svg
+              className="w-8 h-8 text-red-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-4">
+            Analysis Data Not Available
+          </h1>
           <p className="text-gray-400 mb-6">
-            The analysis data for this file could not be found.
+            The analysis data for this file is no longer available. This can
+            happen when:
           </p>
-          <button
-            onClick={() => router.push("/")}
-            className="btn-gradient px-6 py-3 rounded-xl font-semibold text-white"
-          >
-            Upload New File
-          </button>
+          <ul className="text-gray-400 text-sm mb-6 text-left space-y-2">
+            <li>• The page was refreshed or reloaded</li>
+            <li>• The browser session expired</li>
+            <li>• The server was restarted</li>
+          </ul>
+          <div className="space-y-3">
+            <button
+              onClick={() => router.push("/")}
+              className="btn-gradient px-6 py-3 rounded-xl font-semibold text-white w-full"
+            >
+              Upload New File
+            </button>
+            <p className="text-gray-500 text-xs">
+              Tip: For persistent analysis, consider bookmarking your results
+              before leaving the page
+            </p>
+          </div>
         </div>
       </div>
     );

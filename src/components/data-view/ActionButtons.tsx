@@ -33,9 +33,15 @@ export function ActionButtons({
                   />
                 </svg>
               </div>
-              <div>
+              <div className="flex-1">
                 <h3 className="text-red-400 font-semibold">Analysis Failed</h3>
                 <p className="text-red-300 text-sm">{analyzeError.message}</p>
+                {analyzeError.message.includes("File not found") && (
+                  <p className="text-red-200 text-xs mt-2">
+                    This usually happens after a page reload. Please upload your
+                    file again to continue.
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -54,7 +60,7 @@ export function ActionButtons({
           <button
             onClick={onCreateVisualizations}
             disabled={analyzeLoading}
-            className="btn-gradient px-8 py-3 rounded-xl font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 inline-flex"
+            className="btn-gradient px-8 py-3 rounded-xl font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center space-x-2"
           >
             {analyzeLoading ? (
               <>
