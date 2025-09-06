@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
+import { storeFileData } from "../analyze/[file_id]/route";
 
 // Helper function to detect data type
 function detectDataType(values: any[]): string {
@@ -189,6 +190,9 @@ export async function POST(request: NextRequest) {
           Object.keys(summaryStats).length
         } numeric columns.`,
       };
+
+      // Store file data for analysis
+      storeFileData(response.file_id, response);
 
       return NextResponse.json(response);
     } catch (parseError) {
