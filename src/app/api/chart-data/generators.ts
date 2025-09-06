@@ -124,7 +124,13 @@ export function generateBarChartData(data: any[], parameters: any) {
 }
 
 export function generatePieChartData(data: any[], parameters: any) {
-  const { x_axis, y_axis, aggregation = "count", percentage = true, limit = 7 } = parameters;
+  const {
+    x_axis,
+    y_axis,
+    aggregation = "count",
+    percentage = true,
+    limit = 7,
+  } = parameters;
 
   const grouped = data.reduce((acc, row) => {
     const key = row[x_axis];
@@ -144,13 +150,15 @@ export function generatePieChartData(data: any[], parameters: any) {
       const numericValues = (values as any[])
         .map((v) => parseFloat(v[y_axis]))
         .filter((v) => !isNaN(v));
-      
+
       if (numericValues.length === 0) {
         aggregatedValue = count;
       } else {
         switch (aggregation) {
           case "mean":
-            aggregatedValue = numericValues.reduce((sum, v) => sum + v, 0) / numericValues.length;
+            aggregatedValue =
+              numericValues.reduce((sum, v) => sum + v, 0) /
+              numericValues.length;
             break;
           case "sum":
             aggregatedValue = numericValues.reduce((sum, v) => sum + v, 0);
@@ -173,10 +181,14 @@ export function generatePieChartData(data: any[], parameters: any) {
       name: key,
       value: aggregatedValue,
       percentage: percentage
-        ? Math.round((aggregatedValue / data.reduce((sum, row) => {
-            const val = y_axis ? parseFloat(row[y_axis]) || 0 : 1;
-            return sum + val;
-          }, 0)) * 100)
+        ? Math.round(
+            (aggregatedValue /
+              data.reduce((sum, row) => {
+                const val = y_axis ? parseFloat(row[y_axis]) || 0 : 1;
+                return sum + val;
+              }, 0)) *
+              100
+          )
         : aggregatedValue,
     };
   });
@@ -193,12 +205,18 @@ export function generatePieChartData(data: any[], parameters: any) {
       show_percentage: percentage,
       aggregation,
     },
-    title: y_axis 
+    title: y_axis
       ? `${x_axis.replace(/_/g, " ")} vs ${y_axis.replace(/_/g, " ")}`
       : `${x_axis.replace(/_/g, " ")} Composition`,
     insight: y_axis
-      ? `This pie chart shows the ${aggregation} of ${y_axis.replace(/_/g, " ")} by ${x_axis.replace(/_/g, " ")} categories.`
-      : `This pie chart shows the proportional breakdown of ${x_axis.replace(/_/g, " ")} categories.`,
+      ? `This pie chart shows the ${aggregation} of ${y_axis.replace(
+          /_/g,
+          " "
+        )} by ${x_axis.replace(/_/g, " ")} categories.`
+      : `This pie chart shows the proportional breakdown of ${x_axis.replace(
+          /_/g,
+          " "
+        )} categories.`,
     interpretation:
       chartData.length > 0
         ? `The largest segment is "${chartData[0].name}" representing ${

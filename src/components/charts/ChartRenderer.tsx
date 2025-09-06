@@ -141,10 +141,14 @@ export function ChartRenderer({
     }
 
     // Transform data to ensure consistent structure (handle both 'name' and 'label')
-    const normalizedData = data.map(item => ({
-      name: item.name || item.label || 'Unknown',
+    const normalizedData = data.map((item) => ({
+      name: item.name || item.label || "Unknown",
       value: item.value || 0,
-      percentage: item.percentage || Math.round((item.value / data.reduce((sum, d) => sum + (d.value || 0), 0)) * 100)
+      percentage:
+        item.percentage ||
+        Math.round(
+          (item.value / data.reduce((sum, d) => sum + (d.value || 0), 0)) * 100
+        ),
     }));
 
     console.log("[ChartRenderer] Normalized pie data:", normalizedData);
