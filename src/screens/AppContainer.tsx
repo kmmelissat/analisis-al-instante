@@ -4,14 +4,26 @@ import { useState } from "react";
 import { Hero } from "@/components/Hero";
 import { FileUpload } from "@/components/FileUpload";
 import { Logo } from "@/components/Logo";
+import { UploadResponse } from "@/types/upload";
 
 export function AppContainer() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [analysisData, setAnalysisData] = useState<UploadResponse | null>(null);
 
   const handleFileUpload = (file: File) => {
     setUploadedFile(file);
     console.log("File uploaded:", file.name, file.size, file.type);
-    // Here you would typically send the file to your AI analysis endpoint
+  };
+
+  const handleUploadSuccess = (data: UploadResponse) => {
+    setAnalysisData(data);
+    console.log("Analysis complete:", data);
+    // Here you can trigger navigation to dashboard or show results
+  };
+
+  const handleUploadError = (error: string) => {
+    console.error("Upload failed:", error);
+    // Here you can show error notifications
   };
 
   return (
@@ -84,7 +96,12 @@ export function AppContainer() {
               </p>
             </div>
 
-            <FileUpload onFileUpload={handleFileUpload} className="mb-12" />
+            <FileUpload
+              onFileUpload={handleFileUpload}
+              onUploadSuccess={handleUploadSuccess}
+              onUploadError={handleUploadError}
+              className="mb-12"
+            />
           </section>
 
           {/* Features Preview */}

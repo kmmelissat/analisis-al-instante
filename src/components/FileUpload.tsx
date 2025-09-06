@@ -2,25 +2,72 @@
 
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import { UploadResponse } from "@/types/upload";
 
 interface FileUploadProps {
   onFileUpload?: (file: File) => void;
+  onUploadSuccess?: (data: UploadResponse) => void;
+  onUploadError?: (error: string) => void;
   className?: string;
 }
 
-export function FileUpload({ onFileUpload, className = "" }: FileUploadProps) {
+export function FileUpload({
+  onFileUpload,
+  onUploadSuccess,
+  onUploadError,
+  className = "",
+}: FileUploadProps) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
 
+  // Use the upload hook
+  const {
+    uploadFile,
+    loading: isUploading,
+    error: uploadError,
+    progress,
+    data: uploadData,
+    isSuccess,
+    reset: resetUpload,
+    getFileInfo,
+  } = useFileUpload({
+    onSuccess: (data) => {
+      console.log("Upload successful:", data);
+      // Store analysis data in sessionStorage for the data view page
+      sessionStorage.setItem(`analysis_${data.file_id}`, JSON.stringify(data));
+      onUploadSuccess?.(data);
+    },
+    onError: (error) => {
+      console.error("Upload failed:", error);
+      console.error("Error details:", {
+        message: error.message,
+        errorType: error.error,
+        details: error.details,
+      });
+      onUploadError?.(error.message);
+    },
+    onProgress: (progress) => {
+      console.log("Upload progress:", progress + "%");
+    },
+  });
+
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
+    async (acceptedFiles: File[]) => {
       if (acceptedFiles.length > 0) {
         const file = acceptedFiles[0];
         setUploadedFile(file);
         onFileUpload?.(file);
+
+        try {
+          await uploadFile(file);
+        } catch (error) {
+          // Error is already handled by the hook
+          console.error("Upload error:", error);
+        }
       }
     },
-    [onFileUpload]
+    [onFileUpload, uploadFile]
   );
 
   const { getRootProps, getInputProps, isDragReject } = useDropzone({
@@ -70,7 +117,181 @@ export function FileUpload({ onFileUpload, className = "" }: FileUploadProps) {
 
         {/* Upload content */}
         <div className="relative z-10 p-12 text-center">
-          {uploadedFile ? (
+          {isUploading ? (
+            // Uploading state
+            <div className="space-y-6">
+              <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  Analyzing your data...
+                </h3>
+                <p className="text-gray-400 mb-4">
+                  Our AI is processing your file and generating insights
+                </p>
+
+                {/* Progress bar */}
+                <div className="max-w-md mx-auto">
+                  <div className="flex justify-between text-sm text-gray-400 mb-2">
+                    <span>Progress</span>
+                    <span>{progress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-blue-400 to-purple-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : uploadError ? (
+            // Error state
+            <div className="space-y-6">
+              <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-red-400 to-red-500 flex items-center justify-center">
+                <svg
+                  className="w-10 h-10 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  Upload failed
+                </h3>
+                <p className="text-red-400 mb-4">{uploadError.message}</p>
+
+                <button
+                  onClick={() => {
+                    resetUpload();
+                    setUploadedFile(null);
+                  }}
+                  className="btn-gradient px-6 py-2 rounded-lg font-semibold text-white"
+                >
+                  Try again
+                </button>
+              </div>
+            </div>
+          ) : isSuccess && uploadData ? (
+            // Success state with data preview
+            <div className="space-y-6">
+              <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
+                <svg
+                  className="w-10 h-10 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  Analysis complete!
+                </h3>
+
+                {/* Data summary */}
+                <div className="glass-card p-6 rounded-xl max-w-2xl mx-auto mb-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div>
+                      <div className="text-2xl font-bold gradient-text">
+                        {uploadData.shape[0]}
+                      </div>
+                      <div className="text-xs text-gray-400">Rows</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold gradient-text">
+                        {uploadData.shape[1]}
+                      </div>
+                      <div className="text-xs text-gray-400">Columns</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold gradient-text">
+                        {Object.keys(uploadData.summary_stats).length}
+                      </div>
+                      <div className="text-xs text-gray-400">Numeric</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold gradient-text">
+                        {uploadData.columns.length -
+                          Object.keys(uploadData.summary_stats).length}
+                      </div>
+                      <div className="text-xs text-gray-400">Categorical</div>
+                    </div>
+                  </div>
+
+                  {/* File info */}
+                  <div className="mt-4 pt-4 border-t border-white/10">
+                    <div className="flex items-center justify-center space-x-3">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center flex-shrink-0">
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                      </div>
+                      <div className="text-left">
+                        <p className="text-sm font-medium text-white">
+                          {uploadData.filename}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          File ID: {uploadData.file_id}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-center space-x-4">
+                  <button
+                    onClick={() => {
+                      resetUpload();
+                      setUploadedFile(null);
+                    }}
+                    className="btn-glass px-6 py-2 rounded-lg font-semibold text-white"
+                  >
+                    Upload another file
+                  </button>
+                  <button
+                    onClick={() => {
+                      // Navigate to data view page with the analysis data
+                      if (uploadData) {
+                        window.location.href = `/data-view?fileId=${uploadData.file_id}`;
+                      }
+                    }}
+                    className="btn-gradient px-6 py-2 rounded-lg font-semibold text-white"
+                  >
+                    View Data
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : uploadedFile ? (
             // File uploaded state
             <div className="space-y-6">
               <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
